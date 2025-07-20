@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rate Limiting Algorithms Explained - Blogz</title>
+    <link rel="icon" href="../favicon.ico" type="image/x-icon" />
+    <link rel="shortcut icon" href="../favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="icon" type="image/x-icon" href="../favicon.jpeg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Open+Sans:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <meta
+      name="description"
+      content="Understanding different rate limiting algorithms: Token bucket, Leaking bucket, Fixed window counter, Sliding window log, and Sliding window counter."
+    />
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+  </head>
+  <body>
+    <header>
+      <div class="container">
+        <h1><a href="../index.html">Logo?</a></h1>
+        <nav>
+          <ul>
+            <li><a href="../index.html">home</a></li>
+            <li><a href="../blogs.html">blogs</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <article class="container post-content">
+        <div class="post-header">
+          <h1>Rate Limiting Algorithms Explained</h1>
+          <div class="post-meta">
+            <span class="date">July 20, 2025</span> •
+            <span class="reading-time">8 min read IG</span>
+          </div>
+        </div>
+
+        <div class="post-body">
+          <p>
+            Hey there! So today I want to talk about something that's super
+            important in system design but often gets overlooked until you're
+            dealing with a massive traffic spike - rate limiting algorithms.
+            Trust me, understanding these can save your backend from turning
+            into a pile of burning servers!
+          </p>
+
+          <p>
+            When I first started learning about system design, rate limiting
+            seemed like this mysterious black box. But once I dug deeper, I
+            realized it's actually quite elegant. We'll explore five different
+            algorithms, each with its own personality and use cases.
+          </p>
+
+          <h2>What Are We Covering?</h2>
+          <p>
+            We'll dive into these five rate limiting algorithms from a high
+            level:
+          </p>
+          <ul>
+            <li>Token bucket</li>
+            <li>Leaking bucket</li>
+            <li>Fixed window counter</li>
+            <li>Sliding window log</li>
+            <li>Sliding window counter</li>
+          </ul>
+
+          <p>
+            Don't worry if these sound intimidating - by the end of this post,
+            you'll understand when and why to use each one!
+          </p>
+
+          <h2>1. Token Bucket Algorithm</h2>
+
+          <p>
+            This is probably the most popular rate limiting algorithm out there.
+            Companies like Amazon and Stripe use this approach, and for good
+            reason - it's simple, well-understood, and handles traffic bursts
+            gracefully.
+          </p>
+
+          <h3>How Does It Work?</h3>
+
+          <p>
+            Imagine you have a bucket that can hold a certain number of tokens.
+            Here's the process:
+          </p>
+
+          
+          <ul>
+              <li>
+                  Tokens are added to the bucket at a steady rate (like bucket is refilled after every minute)
+                </li>
+                <li>
+                    When the bucket is full, extra tokens just overflow and are lost
+                </li>
+                <li>Each request needs one token to proceed</li>
+                <li>
+                    If there's a token available, the request goes through and
+                    consumes the token
+                </li>
+                <li>If no tokens are available, the request gets rejected</li>
+            </ul>
+            
+            <img src="../images/rate-limiting-algorithms/tokenBucket.png" alt="">
+          <p>
+            Here is how we'll implement this in code:
+          </p>
+          <ul>
+            <li>Check if window time has been elapsed since the last time counter was reset. For rate 100 req/min, current time 10:00:27, last reset time 9:59:00 is elapsed and 9:59:25 (10:00:27-9:59:25 > 60 sec) is not elapsed.</li>
+            <li>If window time is not elapsed, check if the user has sufficient requests left to handle the incoming request.</li>
+            <li>If window is not elapsed then check if there are sufficient number of tokens(requests) left.</li>
+            <li>If there are sufficient tokens, decrement the token count and allow the request.</li>
+            <li>If there are no tokens left, reject the request.</li>
+          </ul>
+
+          <pre><code class="language-typescript">// Simple token bucket implementation concept
+async tokenBucket(ip: string): Promise<boolean> {
+    const currentTime = Date.now();
+    const key = `token:${ip}`;
+
+    try {
+      // Get the current token count and last refill time
+      const [tokenCount, lastRefill] = await this.redisClient.hmGet(key, [
+        "tokenCount",
+        "lastRefill",
+      ]);
+      const currentTokenCount = tokenCount
+        ? parseInt(tokenCount)
+        : this.maxRequests;
+      const lastRefillTime = lastRefill ? parseInt(lastRefill) : 0;
+      const elapsed = currentTime - lastRefillTime;
+
+      // Calculate if we need to refill tokens based on elapsed time
+      if (elapsed >= this.windowMs) {
+        const newTokenCount = this.maxRequests - 1; // Refill tokens using one for the current request
+        await this.redisClient.hSet(key, {
+          tokenCount: newTokenCount.toString(),
+          lastRefill: currentTime.toString(),
+        });
+        return true; // Request allowed after refill
+      }
+
+      if (currentTokenCount <= 0) {
+        console.log(`Rate limit exceeded for IP: ${ip}`);
+        return false; // Rate limit exceeded
+      }
+
+      // Decrement token count for the current request
+      await this.redisClient.hSet(key, {
+        tokenCount: (currentTokenCount - 1).toString(),
+        lastRefill: lastRefillTime.toString(),
+      });
+      
+      // Set expiration for cleanup
+      await this.redisClient.expire(key, Math.ceil(this.windowMs / 1000) + 60);
+      return true; // Request allowed
+    } catch (err) {
+      console.error("Error accessing Redis:", err);
+      return false; // Fail closed - deny request on Redis error
+    }
+  }
+</code></pre>
+
+          <h3>Parameters You Need</h3>
+          <ul>
+            <li>
+              <strong>bucket size (this.maxRequests):</strong> maximum number of tokens the bucket
+              can hold
+            </li>
+            <li>
+              <strong>refill rate (this.windowMs):</strong> after how many milliseconds the bucket refills
+            </li>
+          </ul>
+
+          <h3>How Many Buckets Do You Need?</h3>
+          <p>This depends on your requirements:</p>
+          <ul>
+            <li>
+              Different API endpoints might need separate buckets (1 post/sec,
+              150 friends/day, 5 likes/sec)
+            </li>
+            <li>
+              If you're limiting by IP address, each IP gets its own bucket
+            </li>
+            <li>
+              For global limits (like 10k requests/sec total), use one shared
+              bucket
+            </li>
+          </ul>
+
+          <h3>Pros and Cons</h3>
+          <p><strong>Pros:</strong></p>
+          <ul>
+            <li>Super easy to implement</li>
+            <li>Memory efficient</li>
+        </ul>
+        
+        <p><strong>Cons:</strong></p>
+        <ul>
+            <li>Tuning the bucket size and refill rate can be tricky</li>
+            <li>Allows traffic bursts (not good for handling sudden spikes)</li>
+          </ul>
+
+          <br>
+          <h2>2. Leaking Bucket Algorithm</h2>
+
+          <p>
+            This one's similar to token bucket but with a key difference -
+            requests are processed at a fixed, steady rate. Think of it like a
+            FIFO queue with a controlled output rate.
+          </p>
+
+          <h3>How It Works</h3>
+          <ul>
+            <li>Incoming requests go into a queue (the "bucket")</li>
+            <li>If the queue is full, new requests get dropped</li>
+            <li>Requests are processed from the queue at regular intervals</li>
+          </ul>
+
+          <pre><code class="language-javascript">// Leaking bucket concept
+async leakyBucket(ip: string): Promise<boolean> {
+    const currentTime = Date.now();
+    const key = `leaky:${ip}`;
+
+    try {
+      // Get the last request time and bucket level
+      const [lastRequest, bucketLevel] = await this.redisClient.hmGet(key, [
+        "lastRequest",
+        "bucketLevel",
+      ]);
+
+      const lastRequestTime = lastRequest ? parseInt(lastRequest) : 0;
+      const currentBucketLevel = bucketLevel ? parseInt(bucketLevel) : 0;
+
+      /**
+       * Leaky bucket calculations you should consider:
+       *
+       * Leak Rate: How much time for each request to leak out of the bucket.
+       * Leak Rate = Time of each window / maximum allowed requests
+       * Example: If window is 10 seconds and max requests is 5, then leak rate is 2 seconds per request.
+       * This means every 2 seconds, one request can leak out of the bucket.
+       *
+       * Leak amount: How many requests can leak out based on the elapsed time since the last request.
+       * leakedAmount = elapsed / leakRate;
+       */
+      const elapsed = currentTime - lastRequestTime;
+      const leakedAmount = Math.floor(
+        elapsed / (this.windowMs / this.maxRequests)
+      );
+      const newBucketLevel = Math.max(0, currentBucketLevel - leakedAmount);
+
+      // Check if we can allow the request
+      if (newBucketLevel >= this.maxRequests) {
+        console.log(`Rate limit exceeded for IP: ${ip}`);
+        return false; // Rate limit exceeded
+      }
+
+      // Update the bucket level and last request time
+      await this.redisClient.hSet(key, {
+        lastRequest: currentTime.toString(),
+        bucketLevel: (newBucketLevel + 1).toString(),
+      });
+
+      // Set expiration for cleanup
+      await this.redisClient.expire(key, Math.ceil(this.windowMs / 1000) + 60);
+      return true; // Request allowed
+    } catch (err) {
+      console.error("Error accessing Redis:", err);
+      return false; // Fail closed - deny request on Redis error
+    }
+  }
+</code></pre>
+
+          <h3>Parameters</h3>
+          <ul>
+            <li>
+              <strong>Bucket size (this.maxRequests):</strong> the queue size (how many requests
+              can wait)
+            </li>
+            <li>
+              <strong>Leak rate:</strong> how many requests are processed per
+              second
+            </li>
+          </ul>
+
+          <h3>Pros and Cons</h3>
+          <p><strong>Pros:</strong></p>
+          <ul>
+            <li>Memory efficient with fixed queue size</li>
+            <li>Provides stable output rate (great for downstream systems)</li>
+          </ul>
+
+          <p><strong>Cons:</strong></p>
+          <ul>
+            <li>Can't handle bursts well - everything gets smoothed out</li>
+            <li>Newer requests might wait behind older ones</li>
+          </ul>
+
+        <br>
+          <h2>3. Fixed Window Counter Algorithm</h2>
+
+          <p>
+            This is probably the simplest algorithm to understand and implement.
+            Time is divided into fixed windows, and each window has a request
+            counter.
+          </p>
+
+          <h3>How It Works</h3>
+          <ul>
+            <li>Divide time into fixed intervals (like 1-minute windows)</li>
+            <li>Each window allows a fixed number of requests</li>
+            <li>Keep a counter for each window</li>
+            <li>
+              When counter reaches the limit, reject new requests for that
+              window
+            </li>
+          </ul>
+          <img src="../images/rate-limiting-algorithms/fixedWindow.png" alt="fixed window illustration">
+
+          <pre><code class="language-javascript">// Fixed window counter
+async fixedWindow(ip: string): Promise<boolean> {
+    const currentTime = Date.now();
+    // Calculate window start time for fixed window algorithm
+    const windowStart = Math.floor(currentTime / this.windowMs) * this.windowMs;
+    const key = `${ip}:${windowStart}`;
+
+    try {
+      const reqCount = await this.redisClient.GET(key);
+
+      // Initialize new window with first request
+      if (reqCount === null) {
+        await this.redisClient.SET(key, 1, {
+          expiration: { type: "EX", value: this.windowMs },
+        });
+      }
+
+      // Check if rate limit exceeded
+      if (reqCount && parseInt(reqCount) >= this.maxRequests) {
+        console.log(`Rate limit exceeded for IP: ${ip}`);
+        return false; // Rate limit exceeded
+      }
+
+      // Increment request count for this window
+      await this.redisClient.INCR(key);
+      return true; // Request allowed
+    } catch (err) {
+      console.error("Error accessing Redis:", err);
+      return false; // Fail closed - deny request on Redis error
+    }
+  }</code></pre>
+
+          <h3>The Edge Problem</h3>
+          <p>
+            Here's where things get tricky. Let's say you allow 5 requests per
+            minute. What happens if someone sends 5 requests at 2:00:30 and
+            another 5 requests at 2:01:30? That's 10 requests in just 1 minute,
+            even though each individual window stayed within limits!
+          </p>
+
+          <p>
+            This "edge effect" is the main weakness of fixed windows - traffic
+            bursts at window boundaries can bypass your limits.
+          </p>
+
+          <br>
+          <h2>4. Sliding Window Log Algorithm</h2>
+
+          <p>
+            This algorithm fixes the edge problem from fixed windows by keeping
+            track of individual request timestamps.
+          </p>
+
+          <h3>How It Works</h3>
+          <ul>
+            <li>Keep a log of all request timestamps</li>
+            <li>
+              When a new request comes in, remove all timestamps older than the
+              window
+            </li>
+            <li>Add the new request's timestamp to the log</li>
+            <li>
+              If log size is within limits, allow the request; otherwise, reject
+              it
+            </li>
+          </ul>
+
+          <img src="../images/rate-limiting-algorithms/slidingLogs.png" alt="Sliding logs illustration">
+
+          <pre><code class="language-javascript">// Sliding window log
+async slidingLogs(ip: string): Promise<boolean> {
+    const currentTime = Date.now();
+    const key = `sliding:${ip}`;
+
+    try {
+      // Remove old timestamps outside the sliding window
+      await this.redisClient.zRemRangeByScore(
+        key,
+        0,
+        currentTime - this.windowMs
+      );
+
+      // Get current count of requests in the sliding window
+      const requestCount = await this.redisClient.zCard(key);
+      
+      // Add current request timestamp to sorted set
+      await this.redisClient.zAdd(key, {
+        score: currentTime,
+        value: currentTime.toString(),
+      });
+
+      // Check if rate limit would be exceeded
+      if (requestCount >= this.maxRequests) {
+        console.log(`Rate limit exceeded for IP: ${ip}`);
+        return false; // Rate limit exceeded
+      }
+
+
+      // Set expiration for cleanup - key expires after window + buffer time
+      await this.redisClient.expire(key, Math.ceil(this.windowMs / 1000) + 60);
+      return true; // Request allowed
+    } catch (err) {
+      console.error("Error accessing Redis:", err);
+      return false; // Fail closed - deny request on Redis error
+    }
+  }
+</code></pre>
+
+          <p>
+            Notice something important: even if a request gets rejected, its
+            timestamp might still be logged for future calculations.
+          </p>
+
+          <h3>Pros and Cons</h3>
+          <p><strong>Pros:</strong></p>
+          <ul>
+            <li>Very accurate - no edge effects</li>
+            <li>Works perfectly for any rolling time window</li>
+          </ul>
+
+          <p><strong>Cons:</strong></p>
+          <ul>
+            <li>Memory hungry - stores every request timestamp</li>
+            <li>Can be expensive to maintain for high-traffic systems</li>
+          </ul>
+
+          <br>
+          <h2>5. Sliding Window Counter Algorithm</h2>
+
+          <p>
+            This is the hybrid approach - combining the memory efficiency of
+            fixed windows with the accuracy of sliding windows. It's a clever
+            compromise!
+          </p>
+
+          <h3>How It Works</h3>
+          <p>We use this formula:</p>
+          <blockquote>
+            Requests in current window + (requests in previous window × overlap
+            percentage)
+          </blockquote>
+
+          <p>
+            For example, if we're 70% through the current window:
+            <br />
+            3 (current) + 5 (previous) × 0.7 = 6.5 requests
+          </p>
+          <p>
+            If the maximum allowed requests is 10, we can allow a new coming request (because only 6.5 requests are passed till now as per our calculations).
+            If maximum allowed requests was 6, we would reject any new request.
+          </p>
+          <img src="../images/rate-limiting-algorithms/slidingWindow.png" alt="Sliding logs illustration">
+
+          <pre><code class="language-javascript">// Sliding window counter
+class SlidingWindowCounter {
+    constructor(windowSize, maxRequests) {
+        this.windowSize = windowSize * 1000; // convert to ms
+        this.maxRequests = maxRequests;
+        this.windows = new Map();
+    }
+    
+    allowRequest() {
+        const now = Date.now();
+        const currentWindow = Math.floor(now / this.windowSize);
+        const previousWindow = currentWindow - 1;
+        
+        // calculate overlap percentage
+        const windowProgress = (now % this.windowSize) / this.windowSize;
+        
+        const currentCount = this.windows.get(currentWindow) || 0;
+        const previousCount = this.windows.get(previousWindow) || 0;
+        
+        // estimated requests in sliding window
+        const estimatedCount = currentCount + (previousCount * (1 - windowProgress));
+        
+        if (estimatedCount < this.maxRequests) {
+            this.windows.set(currentWindow, currentCount + 1);
+            return true;  // request allowed
+        }
+        
+        return false;     // request rejected
+    }
+}</code></pre>
+
+          <h3>Pros and Cons</h3>
+          <p><strong>Pros:</strong></p>
+          <ul>
+            <li>Smooths out traffic spikes</li>
+            <li>Memory efficient</li>
+            <li>Good approximation of true sliding window</li>
+          </ul>
+
+          <p><strong>Cons:</strong></p>
+          <ul>
+            <li>Not 100% accurate (assumes even distribution)</li>
+            <li>Might not work for super strict requirements</li>
+          </ul>
+
+          <p>
+            But here's the thing - according to Cloudflare's experiments with
+            400 million requests, only 0.003% of requests were incorrectly
+            handled. That's pretty darn good!
+          </p>
+
+          <h2>Which Algorithm Should You Choose?</h2>
+
+          <p>Here's my personal take on when to use each:</p>
+
+          <ul>
+            <li>
+              <strong>Token bucket:</strong> when you need to allow bursts but
+              want overall rate control (most API rate limiting)
+            </li>
+            <li>
+              <strong>Leaking bucket:</strong> when you need steady, predictable
+              output (message queues, batch processing)
+            </li>
+            <li>
+              <strong>Fixed window:</strong> when simplicity matters more than
+              perfect accuracy (internal services)
+            </li>
+            <li>
+              <strong>Sliding window log:</strong> when you need perfect
+              accuracy and can handle the memory cost (financial systems)
+            </li>
+            <li>
+              <strong>Sliding window counter:</strong> when you want good
+              accuracy with reasonable memory usage (most production systems)
+            </li>
+          </ul>
+
+          <h2>Wrapping Up</h2>
+
+          <p>
+            Rate limiting isn't just about protecting your servers - it's about
+            creating a fair and predictable experience for all your users. Each
+            algorithm has its sweet spot, and understanding these trade-offs
+            will help you make better architectural decisions.
+          </p>
+
+          <p>
+            I hope this breakdown was helpful! Next time you're designing a
+            system and someone asks "how do we handle rate limiting?", you'll
+            have a whole toolkit of solutions to choose from.
+          </p>
+
+          <p>Github Link: <a href="https://github.com/Harsh2509/rate-limiter" target="_blank">https://github.com/Harsh2509/rate-limiter</a></p>
+
+          <p>Happy coding! 🚀</p>
+          <br>
+          <p><strong>- Harsh Chauhan</strong></p>
+        </div>
+      </article>
+    </main>
+
+    <!-- Prism.js JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="../js/main.js"></script>
+  </body>
+</html>
