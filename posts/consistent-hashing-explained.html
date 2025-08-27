@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Consistent Hashing Explained - Blogz</title>
+    <link rel="icon" href="../favicon.ico" type="image/x-icon" />
+    <link rel="shortcut icon" href="../favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Open+Sans:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <meta
+      name="description"
+      content="Understanding consistent hashing: solving the rehashing problem, hash rings, virtual nodes, and practical implementation for distributed systems."
+    />
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+  </head>
+  <body>
+    <header>
+      <div class="container">
+        <h1><a href="../index.html">Logo?</a></h1>
+        <nav>
+          <ul>
+            <li><a href="../index.html">home</a></li>
+            <li><a href="../blogs.html">blogs</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <article class="container post-content">
+        <div class="post-header">
+          <h1>Consistent Hashing Explained</h1>
+          <div class="post-meta">
+            <span class="date">August 27, 2025</span> •
+            <span class="reading-time">10 min read</span>
+          </div>
+        </div>
+
+        <div class="post-body">
+            <img src="/images/consistent-hashing-explained/meme.png" alt="Consistent Hashing Meme" style="max-width: 100%; height: auto;"/>
+
+            <p>
+            Hey there! Today I want to dive into one of the most elegant solutions in distributed systems - consistent hashing. If you've ever wondered how Netflix, Amazon, or any large-scale system manages to distribute data across thousands of servers without everything breaking when a server goes down, you're in for a treat!
+          </p>
+
+
+          <p>
+            When I first encountered consistent hashing, it felt like magic. But once you understand the core concepts, you'll see it's actually a beautifully simple solution to a very complex problem. Let's break it down step by step.
+          </p>
+
+          <h2>The Problem: Why Traditional Hashing Breaks</h2>
+          
+          <p>
+            Imagine you're running a caching system with 4 servers. To decide which server should store a particular piece of data, you might use a simple hash function:
+          </p>
+
+          <pre class="line-numbers"><code class="language-javascript">// Traditional hashing approach
+function getServerIndex(key, numberOfServers) {
+    const hash = simpleHash(key);
+    return hash % numberOfServers;
+}
+
+// Example usage
+const servers = ['Server-0', 'Server-1', 'Server-2', 'Server-3'];
+const key = "user:123";
+
+const serverIndex = getServerIndex(key, servers.length); // Let's say this returns 2
+console.log(`Key ${key} goes to ${servers[serverIndex]}`); // "Key user:123 goes to Server-2"
+</code></pre>
+
+          <p>
+            This works perfectly... until it doesn't. Here's what happens when Server-2 crashes:
+          </p>
+
+          <pre class="line-numbers"><code class="language-javascript">// Oh no! Server-2 is down, now we only have 3 servers
+const availableServers = ['Server-0', 'Server-1', 'Server-3'];
+
+// Same key, but now with 3 servers instead of 4
+const newServerIndex = getServerIndex(key, availableServers.length); // Now returns 1!
+console.log(`Key ${key} now goes to ${availableServers[newServerIndex]}`); // "Key user:123 now goes to Server-1"
+</code></pre>
+
+          <h3>The Rehashing Nightmare</h3>
+          
+          <p>
+            See the problem? Our key "user:123" was on Server-2, but now the hash function says it should be on Server-1. When a client tries to fetch this data, they'll look in the wrong place and get a cache miss!
+          </p>
+
+          <p>
+            In fact, when the server count changes from 4 to 3, almost ALL keys get redistributed to different servers. This means:
+          </p>
+
+          <ul>
+            <li>Massive cache misses (your cache hit rate drops to almost zero)</li>
+            <li>Thundering herd problem as all requests hit your database</li>
+            <li>Potential system meltdown</li>
+          </ul>
+
+          <p>
+            This is called the "rehashing problem," and it's a nightmare for any distributed system.
+          </p>
+
+          <h2>Enter Consistent Hashing</h2>
+
+          <p>
+            Consistent hashing is like a superhero that swoops in to save the day. According to Wikipedia:
+          </p>
+
+          <blockquote>
+            "Consistent hashing is a special kind of hashing such that when a hash table is resized and consistent hashing is used, only k/n keys need to be remapped on average, where k is the number of keys, and n is the number of slots."
+          </blockquote>
+
+          <p>
+            In simple terms: when you add or remove servers, only a small fraction of your data needs to move. The rest stays exactly where it is!
+          </p>
+
+          <h2>The Hash Ring Concept</h2>
+
+          <p>
+            Instead of thinking about servers as a simple array, consistent hashing uses a circular space called a "hash ring." Here's how it works:
+          </p>
+
+          <ul>
+            <li>Imagine a circle (ring) with positions from 0 to 2^32 - 1</li>
+            <li>Both servers and keys are mapped to positions on this ring using the same hash function</li>
+            <li>To find which server stores a key, you move clockwise from the key's position until you find a server</li>
+          </ul>
+
+          <img src="/images/consistent-hashing-explained/circular_space.png" alt="Hash Ring Illustration" style="max-width: 100%; height: auto;">
+          
+          <p>
+            Let me show you with code:
+          </p>
+
+
+          <pre class="line-numbers"><code class="language-javascript">class ConsistentHash {
+    constructor() {
+        this.ring = new Map(); // position -> server
+        this.sortedPositions = []; // sorted list of server positions
+    }
+    
+    // Simple hash function (in production, use something like SHA-1)
+    hash(key) {
+        let hash = 0;
+        for (let i = 0; i < key.length; i++) {
+            const char = key.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        return Math.abs(hash);
+    }
+    
+    addServer(server) {
+        const position = this.hash(server);
+        this.ring.set(position, server);
+        this.sortedPositions.push(position);
+        this.sortedPositions.sort((a, b) => a - b);
+        console.log(`Added ${server} at position ${position}`);
+    }
+    
+    removeServer(server) {
+        const position = this.hash(server);
+        this.ring.delete(position);
+        this.sortedPositions = this.sortedPositions.filter(pos => pos !== position);
+        console.log(`Removed ${server} from position ${position}`);
+    }
+    
+    getServer(key) {
+        if (this.sortedPositions.length === 0) {
+            throw new Error("No servers available");
+        }
+        
+        const keyPosition = this.hash(key);
+        
+        // Find the first server position >= key position (clockwise)
+        for (let position of this.sortedPositions) {
+            if (position >= keyPosition) {
+                return this.ring.get(position);
+            }
+        }
+        
+        // If no server found clockwise, wrap around to the first server
+        return this.ring.get(this.sortedPositions[0]);
+    }
+}
+
+// Let's test it!
+const hashRing = new ConsistentHash();
+
+// Add servers
+hashRing.addServer("Server-A");
+hashRing.addServer("Server-B"); 
+hashRing.addServer("Server-C");
+hashRing.addServer("Server-D");
+
+// Test key distribution
+const keys = ["user:123", "user:456", "product:789", "session:abc"];
+keys.forEach(key => {
+    console.log(`${key} -> ${hashRing.getServer(key)}`);
+});
+
+// Now remove a server and see what happens
+console.log("\n--- Removing Server-B ---");
+hashRing.removeServer("Server-B");
+
+keys.forEach(key => {
+    console.log(`${key} -> ${hashRing.getServer(key)}`);
+});
+</code></pre>
+
+          <h3>The Magic Happens</h3>
+
+          <p>
+            When you run this code, you'll notice something amazing: removing Server-B only affects the keys that were previously assigned to it. All other keys stay with their original servers!
+          </p>
+
+          <p>
+            This is the power of consistent hashing - minimal disruption when the cluster topology changes.
+          </p>
+
+          <img src="/images/consistent-hashing-explained/circle_removed_server.png" alt="After removing one server" style="max-width: 100%; height: auto;">
+
+          <h2>The Two Problems with Basic Consistent Hashing</h2>
+
+          <p>
+            While our basic implementation works, it has two major issues in real-world scenarios:
+          </p>
+
+          <h3>1. Uneven Partitions</h3>
+          <p>
+            Servers might not be evenly distributed around the ring. One server might handle 50% of the data while another handles only 5%. This leads to hotspots and poor load distribution.
+          </p>
+
+          <h3>2. Non-uniform Key Distribution</h3>
+          <p>
+            Even if servers are well-distributed, keys might cluster around certain areas of the ring, again causing uneven load.
+          </p>
+
+          <h2>The Solution: Virtual Nodes</h2>
+
+          <p>
+            Virtual nodes (or replicas) are the secret sauce that makes consistent hashing truly powerful. Instead of placing each server once on the ring, we place multiple "virtual nodes" for each server.
+          </p>
+
+          <img src="/images/consistent-hashing-explained/virtual_nodes.png" alt="Virtual Nodes Illustration" style="max-width: 100%; height: auto;"/>
+
+          <pre class="line-numbers"><code class="language-javascript">class ConsistentHashWithVirtualNodes {
+    constructor(virtualNodeCount = 150) {
+        this.virtualNodeCount = virtualNodeCount;
+        this.ring = new Map(); // position -> server
+        this.sortedPositions = [];
+    }
+    
+    hash(key) {
+        let hash = 0;
+        for (let i = 0; i < key.length; i++) {
+            const char = key.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return Math.abs(hash);
+    }
+    
+    addServer(server) {
+        // Add multiple virtual nodes for this server
+        for (let i = 0; i < this.virtualNodeCount; i++) {
+            const virtualNodeKey = `${server}:${i}`;
+            const position = this.hash(virtualNodeKey);
+            this.ring.set(position, server);
+            this.sortedPositions.push(position);
+        }
+        
+        this.sortedPositions.sort((a, b) => a - b);
+        console.log(`Added ${server} with ${this.virtualNodeCount} virtual nodes`);
+    }
+    
+    removeServer(server) {
+        // Remove all virtual nodes for this server
+        const positionsToRemove = [];
+        
+        for (let [position, serverName] of this.ring.entries()) {
+            if (serverName === server) {
+                positionsToRemove.push(position);
+            }
+        }
+        
+        positionsToRemove.forEach(position => {
+            this.ring.delete(position);
+            this.sortedPositions = this.sortedPositions.filter(pos => pos !== position);
+        });
+        
+        console.log(`Removed ${server} and its ${positionsToRemove.length} virtual nodes`);
+    }
+    
+    getServer(key) {
+        if (this.sortedPositions.length === 0) {
+            throw new Error("No servers available");
+        }
+        
+        const keyPosition = this.hash(key);
+        
+        // Find the first server position >= key position (clockwise)
+        for (let position of this.sortedPositions) {
+            if (position >= keyPosition) {
+                return this.ring.get(position);
+            }
+        }
+        
+        // Wrap around to the first server
+        return this.ring.get(this.sortedPositions[0]);
+    }
+    
+    // Utility method to analyze distribution
+    analyzeDistribution(keys) {
+        const distribution = {};
+        
+        keys.forEach(key => {
+            const server = this.getServer(key);
+            distribution[server] = (distribution[server] || 0) + 1;
+        });
+        
+        console.log("Key distribution:", distribution);
+        return distribution;
+    }
+}
+
+// Test with virtual nodes
+const hashRingVirtual = new ConsistentHashWithVirtualNodes(100);
+
+// Add servers
+hashRingVirtual.addServer("Server-A");
+hashRingVirtual.addServer("Server-B");
+hashRingVirtual.addServer("Server-C");
+
+// Generate test keys
+const testKeys = [];
+for (let i = 0; i < 1000; i++) {
+    testKeys.push(`key:${i}`);
+}
+
+console.log("\n--- Distribution with Virtual Nodes ---");
+hashRingVirtual.analyzeDistribution(testKeys);
+
+// Remove a server
+console.log("\n--- After removing Server-B ---");
+hashRingVirtual.removeServer("Server-B");
+hashRingVirtual.analyzeDistribution(testKeys);
+</code></pre>
+
+          <h3>Why Virtual Nodes Work</h3>
+
+          <p>
+            Virtual nodes solve both problems:
+          </p>
+
+          <ul>
+            <li><strong>Better distribution:</strong> With many virtual nodes per server, the load is much more evenly spread</li>
+            <li><strong>Reduced variance:</strong> The more virtual nodes you use, the smaller the standard deviation becomes</li>
+            <li><strong>Flexibility:</strong> You can assign different numbers of virtual nodes to servers based on their capacity</li>
+          </ul>
+
+          <h2>Real-World Implementation Considerations</h2>
+
+          <p>
+            When implementing consistent hashing in production, here are some key considerations:
+          </p>
+
+          <h3>1. Hash Function Choice</h3>
+          <pre class="line-numbers"><code class="language-javascript">// Use a cryptographic hash function for better distribution
+const crypto = require('crypto');
+
+class ProductionConsistentHash {
+    hash(key) {
+        return crypto.createHash('sha1')
+                    .update(key)
+                    .digest('hex')
+                    .substring(0, 8); // Use first 8 hex characters
+    }
+    
+    // Convert hex string to integer
+    hexToInt(hex) {
+        return parseInt(hex, 16);
+    }
+}</code></pre>
+
+          <h3>2. Handling Server Weights</h3>
+          <pre class="line-numbers"><code class="language-javascript">// Assign virtual nodes based on server capacity
+addWeightedServer(server, weight = 1) {
+    const virtualNodes = this.virtualNodeCount * weight;
+    
+    for (let i = 0; i < virtualNodes; i++) {
+        const virtualNodeKey = `${server}:${i}`;
+        const position = this.hash(virtualNodeKey);
+        this.ring.set(position, server);
+        this.sortedPositions.push(position);
+    }
+    
+    this.sortedPositions.sort((a, b) => a - b);
+    console.log(`Added ${server} with weight ${weight} (${virtualNodes} virtual nodes)`);
+}</code></pre>
+
+          <h3>3. Replication Strategy</h3>
+          <pre class="line-numbers"><code class="language-javascript">// Get N servers for replication
+getServersForReplication(key, replicationFactor = 3) {
+    const servers = new Set();
+    const keyPosition = this.hash(key);
+    
+    let startIndex = this.sortedPositions.findIndex(pos => pos >= keyPosition);
+    if (startIndex === -1) startIndex = 0;
+    
+    for (let i = 0; i < this.sortedPositions.length && servers.size < replicationFactor; i++) {
+        const index = (startIndex + i) % this.sortedPositions.length;
+        const position = this.sortedPositions[index];
+        const server = this.ring.get(position);
+        servers.add(server);
+    }
+    
+    return Array.from(servers);
+}</code></pre>
+
+          <h2>When to Use Consistent Hashing</h2>
+
+          <p>Here's my take on when consistent hashing is the right choice:</p>
+
+          <ul>
+            <li><strong>Distributed caching:</strong> Redis clusters, Memcached clusters</li>
+            <li><strong>Database sharding:</strong> When you need to distribute data across multiple databases</li>
+            <li><strong>Content delivery:</strong> Distribute content across CDN nodes</li>
+            <li><strong>Load balancing:</strong> When you want sticky sessions or stateful connections</li>
+            <li><strong>Peer-to-peer systems:</strong> BitTorrent, distributed hash tables</li>
+          </ul>
+
+          <h3>When NOT to Use It</h3>
+          <ul>
+            <li>Simple load balancing where any server can handle any request</li>
+            <li>Small, static server clusters that rarely change</li>
+            <li>When you need guaranteed even distribution (consistent hashing is probabilistically even)</li>
+          </ul>
+
+          <h2>Performance Characteristics</h2>
+
+          <p>
+            Let's talk numbers:
+          </p>
+
+          <ul>
+            <li><strong>Time complexity:</strong> O(log N) for server lookup using binary search</li>
+            <li><strong>Space complexity:</strong> O(N × V) where N is servers and V is virtual nodes per server</li>
+            <li><strong>Redistribution:</strong> Only K/N keys move when adding/removing servers (where K is total keys)</li>
+          </ul>
+
+          <h2>Tuning Virtual Nodes</h2>
+
+          <p>
+            The number of virtual nodes is a trade-off:
+          </p>
+
+          <ul>
+            <li><strong>More virtual nodes:</strong> Better distribution, more memory usage</li>
+            <li><strong>Fewer virtual nodes:</strong> Less memory, potentially uneven distribution</li>
+          </ul>
+
+          <p>
+            In practice, 100-200 virtual nodes per server usually provides good balance. Big tech companies often use:
+          </p>
+
+          <ul>
+            <li>Amazon DynamoDB: 128-512 virtual nodes per server</li>
+            <li>Apache Cassandra: 256 virtual nodes per server (called "tokens")</li>
+            <li>Redis Cluster: 16,384 hash slots distributed across nodes</li>
+          </ul>
+
+          <h2>Wrapping Up</h2>
+
+          <p>
+            Consistent hashing is one of those beautiful algorithms that solves a complex distributed systems problem with elegant simplicity. It's the backbone of many systems you use every day, from your favorite streaming service to cloud storage.
+          </p>
+
+          <p>
+            The key insights are:
+          </p>
+          <ul>
+            <li>Traditional hashing breaks when server count changes</li>
+            <li>Hash rings provide stability during topology changes</li>
+            <li>Virtual nodes ensure even distribution and flexibility</li>
+            <li>It's probabilistically consistent, not perfectly even</li>
+          </ul>
+
+          <p>
+            Next time you're designing a distributed system and someone asks "how do we handle data distribution when servers come and go?", you'll know exactly what to reach for.
+          </p>
+
+          <p>Happy coding! 🚀</p>
+          <br>
+          <p><strong>- Harsh Chauhan</strong></p>
+        </div>
+      </article>
+    </main>
+
+    <!-- Prism.js JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="../js/main.js"></script>
+  </body>
+</html>
