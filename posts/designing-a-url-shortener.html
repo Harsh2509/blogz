@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MH51B2L22Y"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+    
+        gtag('config', 'G-MH51B2L22Y');
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Designing a URL Shortener - System Design Guide - Blogz</title>
+    <link rel="icon" href="../favicon.ico" type="image/x-icon" />
+    <link rel="shortcut icon" href="../favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="icon" type="image/x-icon" href="../favicon.jpeg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Open+Sans:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <meta
+      name="description"
+      content="Complete system design guide for building a URL shortener like bit.ly. Learn about hash functions, base conversion, API design, and scaling strategies."
+    />
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+  </head>
+  <body>
+    <header>
+      <div class="container">
+        <h1><a href="../index.html">Logo?</a></h1>
+        <nav>
+          <ul>
+            <li><a href="../index.html">home</a></li>
+            <li><a href="../blogs.html">blogs</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <article class="container post-content">
+        <div class="post-header">
+          <h1>Designing a URL Shortener</h1>
+          <div class="post-meta">
+            <span class="date">February 15, 2026</span> •
+            <span class="reading-time">12 min read IG</span>
+          </div>
+        </div>
+
+        <div class="post-body">
+          <p style="font-size: 14px; color: #666;">
+             <img src="../images/designing-a-url-shortener/meme1.png" alt="Stickman meme">
+          </p>
+          
+          <p>
+            I've wondered several times whether URL shorteners are easy to build. After studying them extensively, I found that I was correct. The architecture of building a URL shortener is not very difficult, though there are interesting challenges to consider.
+          </p>
+
+          <p>
+            Before starting, thank you for giving me this chance to explain this subject matter. I'll try to keep it fun and informative! 😊
+          </p>
+
+          
+
+          <h2>First, understand the problem</h2>
+          <p>
+            The mistake we usually make is not understanding the problem completely. We should inquire about these questions:
+          </p>
+          <ul>
+            <li>Can you give an example of how URL shortener works?</li>
+            <li>What will be the traffic volume?</li>
+            <li>How long will be the shortened URL?</li>
+            <li>What characters are allowed in the shortened URL?</li>
+            <li>Can shortened URLs be deleted or updated?</li>
+          </ul>
+
+          <h2>Back-of-the-envelope estimation</h2>
+          <p>
+            <strong>What is this new term?</strong>
+          </p>
+          
+          <p>
+            For this problem, we can always make estimations and assumptions about the magnitude of its use case. A <code>"back-of-the-envelope"</code> calculation is a quick, rough, and informal estimate used to determine the feasibility or approximate magnitude of a problem using simple arithmetic and rounded numbers. Still not clear? Let me give you an example for this URL shortener problem:
+          </p>
+
+          <ul>
+            <li><strong>Write operation:</strong> 100 million URLs are generated per day.</li>
+            <li><strong>Write operation per second:</strong> 100 million / 24 / 3600 = 1160</li>
+            <li><strong>Read operation:</strong> Assuming the ratio of read operations to write operations is 10:1, read operations per second: 1160 * 10 = 11,600</li>
+            <li><strong>Storage estimation:</strong> Assuming the URL shortener service will run for 10 years, this means we must support 100 million * 365 * 10 = 365 billion records.</li>
+            <li><strong>URL length:</strong> Assume the average URL length is 100 characters.</li>
+            <li><strong>Storage requirement:</strong> Over 10 years: 365 billion * 100 bytes = 36.5 TB</li>
+          </ul>
+
+          <h2>High-Level Design</h2>
+          <p>
+            Now we have done good work understanding the number of requests, URL length, data required, etc. You may also add a few more things that are relevant to scale and plan the architecture. Now, let's think about the high-level design components.
+          </p>
+
+          <h3>1. API Endpoints</h3>
+          <p>
+            For this use case, two endpoints will be sufficient. One will be used for sending the long URL and getting back a short URL (URL shortening endpoint). The second will be the redirecting endpoint.
+          </p>
+
+          <p>
+            You understand what the first endpoint does, but is the second endpoint (redirect) unclear? Let's understand it in detail:
+          </p>
+
+          <h4>URL Shortening</h4>
+          <p>
+            Let's say we have a URL <code>www.example-blog.com/this_is_a_long_url/krishna_is_supreme</code> and we send it to the shortener endpoint. The shortener endpoint performs some magic (we'll see this in the next section) and returns a shortened URL: <code>www.shortener.com/asd21</code>
+          </p>
+
+          <p>
+            But the question you should ask is: how do we get back the long URL from <code>www.shortener.com/asd21</code>? This shortened URL acts as a redirecting URL.
+          </p>
+
+          <!-- Meme Placeholder 2: A meme about "magic happens here" or "some black magic fuckery" when explaining the shortening process -->
+
+          <h4>URL Redirecting</h4>
+          <ol>
+            <li>When you request <code>www.shortener.com/asd21</code>, a request goes to the URL shortening server.</li>
+            <li>The server retrieves the corresponding long URL for this hash <code>asd21</code>.</li>
+            <li>The server sends back a response with status code 301 (redirect) or 302 (temporary redirect).</li>
+          </ol>
+          <img src="../images/designing-a-url-shortener/urlRedirecting.png"/>
+
+          <p><strong>Example of redirecting endpoint:</strong></p>
+
+          <pre><code class="language-javascript">import express from "express";
+const app = express();
+const port = 3000;
+
+app.get("/redirect", (req, res) => {
+    return res.set('location', "https://google.com").status(301).send();
+});
+
+app.listen(port, () => {
+    console.log("Listening to port " + port);
+});</code></pre>
+
+          <h4>301 vs 302 Redirects</h4>
+          <ul>
+            <li>
+              <strong>301 redirect:</strong> A 301 redirect shows that the requested URL is "permanently" moved to the long URL. Since it is permanently redirected, the browser caches the response, and subsequent requests for the same URL will not be sent to the URL shortening service. Instead, requests are redirected to the long URL server directly.
+            </li>
+            <li>
+              <strong>302 redirect:</strong> A 302 redirect means that the URL is "temporarily" moved to the long URL, meaning that subsequent requests for the same URL will be sent to the URL shortening service first. Then, they are redirected to the long URL server.
+            </li>
+          </ul>
+
+          <p>
+            Each redirection method has its pros and cons. If the priority is to reduce server load, using a 301 redirect makes sense as only the first request for the same URL is sent to the URL shortening servers. However, if analytics are important, a 302 redirect is a better choice as it can track click rates and the source of clicks more easily.
+          </p>
+
+          <h2>Design Deep-Dive</h2>
+          <p>
+            In this section, we'll dive deep into the following: data model, hash function, URL shortening, and URL redirecting.
+          </p>
+
+          <h3>1. Data Model</h3>
+          <p>
+            We store the <code>&lt;shortURL, longURL&gt;</code> mapping in a relational database. A simplified version of the table contains 3 columns: <code>id</code>, <code>shortURL</code>, and <code>longURL</code>.
+          </p>
+
+          <h3>2. Hash Function</h3>
+
+          <h4>Hash Value Length</h4>
+          <p>
+            The hash value consists of characters from [0-9, a-z, A-Z], containing 10 + 26 + 26 = 62 possible characters. To figure out the length of the hash value, we need to find the smallest n such that 62^n ≥ 365 billion. The system must support up to 365 billion URLs based on our back-of-the-envelope estimation.
+          </p>
+
+          <p>
+            <strong>Calculation:</strong> 62^7 = ~3.5 trillion, which is greater than 365 billion, so a 7-character hash is sufficient.
+          </p>
+
+          <p>
+            We will explore two types of hash functions for a URL shortener. The first one is "hash + collision resolution," and the second one is "base 62 conversion." Let's examine them one by one.
+          </p>
+
+          <h4>1. Hash + Collision Resolution</h4>
+          <p>
+            To shorten a long URL, we should implement a hash function that hashes a long URL to a 7-character string. A straightforward solution is to use well-known hash functions like CRC32, MD5, or SHA-1.
+          </p>
+
+          <div style="background-color: #ffe6e6; padding: 15px; border-left: 4px solid #ff4444; margin: 20px 0;">
+            <p><strong>Drawbacks of this approach:</strong></p>
+            <ul>
+              <li>❌ Collision handling adds complexity</li>
+              <li>❌ Needs DB checks on every insert</li>
+              <li>❌ Truncation increases collision probability</li>
+              <li>❌ Harder to guarantee uniqueness at massive scale</li>
+            </ul>
+          </div>
+
+          <p>
+            But the hash is too long—how can we make it shorter?
+          </p>
+          <ul>
+            <li>The first approach is to take the first 7 characters of a hash value; however, this method can lead to hash collisions.</li>
+            <li>To resolve hash collisions, we can recursively append a new predefined string until no more collisions are discovered.</li>
+          </ul>
+
+          <img src="../images/designing-a-url-shortener/hashing_collision.png" alt="Hashing Collision Handling">
+
+          <p>
+            This method can eliminate collision; however, it is expensive to query the database to check if a shortURL exists for every request. A technique called bloom filters can improve performance. A bloom filter is a space-efficient probabilistic technique to test if an element is a member of a set.
+          </p>
+
+          <h4>2. Base 62 Conversion</h4>
+          <p>
+            Base conversion is another approach commonly used for URL shorteners. Base conversion helps convert the same number between different number representation systems. Base 62 conversion is used because there are 62 possible characters for the hash value. Let's use an example to explain how the conversion works: convert 11157₁₀ to base 62 representation.
+          </p>
+
+          <ul>
+            <li>Base 62 uses 62 characters for encoding. The mappings are: 0→0, ..., 9→9, 10→a, 11→b, ..., 35→z, 36→A, ..., 61→Z, where 'a' represents 10, 'Z' represents 61, etc.</li>
+            <li>11157₁₀ = 2 × 62² + 55 × 62¹ + 59 × 62⁰ = [2, 55, 59] → [2, T, X] in base 62 representation.</li>
+          </ul>
+
+          <!-- Meme Placeholder 3: A meme about math/calculations or "when you finally understand base conversion" -->
+           <img src="../images/designing-a-url-shortener/meme2.jpg" alt="">
+
+          <h3>URL Shortening Deep-Dive</h3>
+          <p>Here's the step-by-step process:</p>
+
+          <ol>
+            <li><strong>Input:</strong> The long URL is <code>https://en.wikipedia.org/wiki/Systems_design</code></li>
+            <li><strong>ID Generation:</strong> Unique ID generator returns ID: <code>2009215674938</code></li>
+            <li><strong>Conversion:</strong> Convert the ID to shortURL using base 62 conversion. ID <code>2009215674938</code> converts to <code>"zn9edcu"</code></li>
+            <li><strong>Storage:</strong> Save ID, shortURL, and longURL to the database</li>
+          </ol>
+
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <thead>
+              <tr style="background-color: #f5f5f5;">
+                <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">ID</th>
+                <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">shortURL</th>
+                <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">longURL</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="border: 1px solid #ddd; padding: 12px;">2009215674938</td>
+                <td style="border: 1px solid #ddd; padding: 12px;">zn9edcu</td>
+                <td style="border: 1px solid #ddd; padding: 12px;">https://en.wikipedia.org/wiki/Systems_design</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3>URL Retrieval Deep-Dive</h3>
+          <p>
+            Since there are more reads than writes, the <code>&lt;shortURL, longURL&gt;</code> mapping is stored in a cache to improve performance. When a user clicks on a shortened URL:
+          </p>
+
+          <ol>
+            <li><strong>Cache Check:</strong> First, check if the mapping exists in the cache</li>
+            <li><strong>Database Lookup:</strong> If not in cache, query the database</li>
+            <li><strong>Cache Update:</strong> Store the result in cache for future requests</li>
+            <li><strong>Redirect:</strong> Return the appropriate redirect response</li>
+          </ol>
+
+          <h2>Bonus Topics</h2>
+
+          <ul>
+            <li>
+              <strong>Rate Limiter:</strong> A potential security problem we could face is malicious users sending an overwhelmingly large number of URL shortening requests. Implementing rate limiting prevents abuse and ensures fair usage.
+            </li>
+            <li>
+              <strong>Web Server Scaling:</strong> Since the web tier is stateless, it's easy to scale by adding or removing web servers based on demand.
+            </li>
+            <li>
+              <strong>Database Scaling:</strong> Database replication and sharding are common techniques to handle increased load and provide better availability.
+            </li>
+            <li>
+              <strong>Analytics:</strong> Data is increasingly important for business success. Integrating an analytics solution into the URL shortener could help answer important questions like: How many people click on a link? What's the geographic distribution of users? What are the peak usage times?
+            </li>
+            <li>
+              <strong>Security:</strong> Consider implementing HTTPS, input validation, and protection against malicious URLs to ensure user safety.
+            </li>
+          </ul>
+
+          <h2>Wrapping Up</h2>
+
+          <p>
+            URL shorteners might seem simple on the surface, but as we've seen, there are many interesting challenges when you start thinking about scale, performance, and reliability. From choosing the right hash function to implementing proper caching strategies, each decision impacts how your system will perform under load.
+          </p>
+
+          <p>
+            The key takeaways are:
+          </p>
+          <ul>
+            <li>Always start by understanding the requirements completely</li>
+            <li>Do back-of-the-envelope calculations to understand scale</li>
+            <li>Consider trade-offs between different approaches</li>
+            <li>Think about caching, security, and analytics from the beginning</li>
+          </ul>
+
+          <p>
+            I hope this deep dive was helpful! Building systems that handle massive scale is both challenging and rewarding. Next time someone asks you to design a URL shortener, you'll be ready with a comprehensive solution.
+          </p>
+
+          <p>Happy coding! 🚀</p>
+          <br>
+          <p><strong>- Your fellow soul (harsh).</strong></p>
+        </div>
+      </article>
+    </main>
+
+    <!-- Prism.js JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="../js/main.js"></script>
+  </body>
+</html>
