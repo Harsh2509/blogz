@@ -1,0 +1,280 @@
+{
+  "nodes": [
+    {
+      "id": "gossip_membership_list",
+      "label": "s0 membership list",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "gossip_s0",
+      "label": "Node s0",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "gossip_s1",
+      "label": "Node s1",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "gossip_s2",
+      "label": "Node s2",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "gossip_s3",
+      "label": "Node s3",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "gossip_s4",
+      "label": "Node s4",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "gossip_s5",
+      "label": "Node s5",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "gossip_member_id",
+      "label": "Member ID",
+      "file_type": "rationale",
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "gossip_heartbeat_counter",
+      "label": "Heartbeat counter",
+      "file_type": "rationale",
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "gossip_last_heartbeat_time",
+      "label": "Last heartbeat time",
+      "file_type": "rationale",
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "gossip_s2_down_detection",
+      "label": "Detected s2 is down",
+      "file_type": "rationale",
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "gossip_s0",
+      "target": "gossip_membership_list",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "gossip_membership_list",
+      "target": "gossip_member_id",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "gossip_membership_list",
+      "target": "gossip_heartbeat_counter",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "gossip_membership_list",
+      "target": "gossip_last_heartbeat_time",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "gossip_membership_list",
+      "target": "gossip_s0",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "gossip_membership_list",
+      "target": "gossip_s1",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "gossip_membership_list",
+      "target": "gossip_s2",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "gossip_membership_list",
+      "target": "gossip_s3",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "gossip_membership_list",
+      "target": "gossip_s4",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "gossip_s0",
+      "target": "gossip_s1",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "gossip_s0",
+      "target": "gossip_s3",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "gossip_s4",
+      "target": "gossip_s3",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "gossip_s3",
+      "target": "gossip_s5",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "gossip_s0",
+      "target": "gossip_s2_down_detection",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "gossip_s2_down_detection",
+      "target": "gossip_s2",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/gossip.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

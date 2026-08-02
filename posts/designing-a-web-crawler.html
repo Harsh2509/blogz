@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MH51B2L22Y"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-MH51B2L22Y');
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Designing a Web Crawler - System Design Guide - Blogz</title>
+    <link rel="icon" href="../favicon.ico" type="image/x-icon" />
+    <link rel="shortcut icon" href="../favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="icon" type="image/x-icon" href="../favicon.jpeg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Open+Sans:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <meta
+      name="description"
+      content="Complete system design guide for building a web crawler at scale. Learn about the URL frontier, politeness, BFS vs DFS, duplicate detection, robots.txt, spider traps, and distributed crawling."
+    />
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
+  </head>
+  <body>
+    <header>
+      <div class="container">
+        <h1><a href="../index.html">Logo?</a></h1>
+        <nav>
+          <ul>
+            <li><a href="../index.html">home</a></li>
+            <li><a href="../blogs.html">blogs</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <article class="container post-content">
+        <div class="post-header">
+          <h1>Designing a Web Crawler</h1>
+          <div class="post-meta">
+            <span class="date">August 2, 2026</span> •
+            <span class="reading-time">16 min read IG</span>
+          </div>
+        </div>
+
+        <div class="post-body">
+          <p>
+            A web crawler goes by many names — a robot, a spider, a bot. Whatever you call it, the job is the same: start from a handful of pages, follow every link you find, and keep going until you've seen the internet. Search engines use it to discover new and updated content. That content can be a web page, an image, a video, a PDF — anything with a URL.
+          </p>
+
+          <img src="../images/designing-a-web-crawler/crawler_intro.png" alt="A web crawler starting from seed pages and following links" />
+
+          <p>
+            Here's the thing that makes this problem fun: the algorithm is a graph traversal you learned in your second semester. That's it. That's the whole idea. And yet building one that actually works at web scale is one of the hardest distributed systems problems out there — because the graph is infinite, adversarial, half-broken, and it fights back.
+          </p>
+
+          <p>
+            Let's build one. 🕷️
+          </p>
+
+          <h2>Step 1: Understand the problem</h2>
+
+          <p>
+            Same as always — before writing a single box on the whiteboard, ask questions. Here's roughly how that conversation goes:
+          </p>
+
+          <blockquote>
+            <p><strong>Q:</strong> What's the main purpose of the crawler? Search indexing, data mining, something else?<br />
+            <strong>A:</strong> Search engine indexing.</p>
+
+            <p><strong>Q:</strong> How many pages per month?<br />
+            <strong>A:</strong> 1 billion.</p>
+
+            <p><strong>Q:</strong> What content types? HTML only, or PDFs and images too?<br />
+            <strong>A:</strong> HTML only.</p>
+
+            <p><strong>Q:</strong> Do we care about newly added or edited pages?<br />
+            <strong>A:</strong> Yes, we should consider them.</p>
+
+            <p><strong>Q:</strong> Do we store the crawled HTML?<br />
+            <strong>A:</strong> Yes, up to 5 years.</p>
+
+            <p><strong>Q:</strong> What about duplicate content?<br />
+            <strong>A:</strong> Pages with duplicate content should be ignored.</p>
+          </blockquote>
+
+          <p>
+            Notice how much design falls out of those six answers. "Consider edited pages" means we need a <em>recrawl</em> strategy. "Ignore duplicates" means we need a <em>content fingerprint</em>. "Store for 5 years" means we need to go do some math.
+          </p>
+
+          <h3>Back-of-the-envelope estimation</h3>
+
+          <ul>
+            <li><strong>Pages per month:</strong> 1 billion</li>
+            <li><strong>QPS:</strong> 1,000,000,000 / 30 days / 24 hours / 3600 seconds ≈ <strong>400 pages per second</strong></li>
+            <li><strong>Peak QPS:</strong> 2 × 400 = <strong>800</strong></li>
+            <li><strong>Average page size:</strong> ~500 KB</li>
+            <li><strong>Storage per month:</strong> 1 billion × 500 KB = <strong>500 TB</strong></li>
+            <li><strong>Storage for 5 years:</strong> 500 TB × 12 × 5 = <strong>30 PB</strong></li>
+          </ul>
+
+          <p>
+            30 petabytes. Just to hold the HTML. No images, no video, no index — just text markup. That number is worth sitting with for a second, because it quietly kills a lot of design ideas before you even propose them. Anything that says "keep it in memory" is dead on arrival.
+          </p>
+
+          <h2>Step 2: High-level design</h2>
+
+          <p>
+            Here's the whole system. Don't panic at the number of boxes — it's really just one loop that keeps eating its own tail.
+          </p>
+
+          <img src="../images/designing-a-web-crawler/high_level_design.png" alt="High-level design of a web crawler" />
+
+          <p>
+            Read it as a cycle: URLs go in, pages come out, pages produce more URLs, those URLs go back in. Everything else is a filter bolted onto that loop. Let's walk through the components.
+          </p>
+
+          <h3>1. Seed URLs</h3>
+          <p>
+            A crawler needs a starting point. A <em>good</em> seed URL is one from which you can reach as much of the web as possible. The general strategy is to divide the URL space into smaller ones and pick seeds for each.
+          </p>
+          <p>
+            One approach is <strong>locality</strong> — different countries have different popular websites, so seed per region. Another is <strong>topic</strong> — split the space into shopping, sports, healthcare, news, and so on. There's no single right answer here; seed selection is genuinely open-ended, and in an interview it's a great place to show you understand the web isn't one uniform blob.
+          </p>
+
+          <h3>2. URL Frontier</h3>
+          <p>
+            Modern crawlers split the crawl state into two: <em>to be downloaded</em> and <em>already downloaded</em>. The component holding the "to be downloaded" set is called the <strong>URL Frontier</strong>.
+          </p>
+          <p>
+            If you remember one component from this post, make it this one. The frontier is where 90% of the actual engineering lives, and we'll spend most of the deep dive here.
+          </p>
+
+          <h3>3. HTML Downloader</h3>
+          <p>
+            Downloads pages from the internet, using URLs handed to it by the frontier. Sounds trivial. It is not — see the performance section later.
+          </p>
+
+          <h3>4. DNS Resolver</h3>
+          <p>
+            To download a page, a URL must be translated into an IP address. The downloader asks the DNS resolver: <code>www.wikipedia.org</code> → <code>198.35.26.96</code>.
+          </p>
+
+          <h3>5. Content Parser</h3>
+          <p>
+            After a page is downloaded it must be parsed and validated, because malformed pages cause problems and waste storage. Parsing is expensive, so we make it a <strong>separate component</strong> rather than doing it inline on the crawl server — otherwise the parser becomes the thing throttling your download throughput.
+          </p>
+
+          <h3>6. Content Seen?</h3>
+          <p>
+            Roughly <strong>29% of web pages are duplicates</strong> of something else. Same article syndicated to five sites, same product page under three URLs, the same page with and without a tracking parameter. Without a check, we'd store the same bytes over and over.
+          </p>
+          <p>
+            You <em>could</em> compare two HTML documents character by character. With a billion pages a month, please don't. Compare <strong>hash values</strong> instead — constant-size, cheap to compare, cheap to index.
+          </p>
+
+          <h3>7. Content Storage</h3>
+          <p>
+            Storage for the HTML itself. What you pick depends on data type, size, access frequency, and lifespan. In practice it's a hybrid:
+          </p>
+          <ul>
+            <li>Most content lives <strong>on disk</strong>, because 30 PB does not fit in RAM.</li>
+            <li><strong>Popular content stays in memory</strong> to cut latency.</li>
+          </ul>
+
+          <h3>8. URL Extractor</h3>
+          <p>
+            Parses links out of the HTML. One detail people skip: relative paths must be converted to absolute URLs. <code>/wiki/Systems_design</code> becomes <code>https://en.wikipedia.org/wiki/Systems_design</code>. Get this wrong and your crawler either misses half the web or generates infinite nonsense URLs.
+          </p>
+
+          <h3>9. URL Filter</h3>
+          <p>
+            Excludes certain content types, file extensions, error links, and URLs from blacklisted sites. This is your first line of defense against wasting bandwidth on things you were never going to index.
+          </p>
+
+          <h3>10. URL Seen?</h3>
+          <p>
+            Tracks URLs that have already been visited or are already sitting in the frontier. This prevents adding the same URL multiple times — which matters a lot, because the web is <em>extremely</em> link-cyclic. Every page on Wikipedia links back to the Wikipedia home page.
+          </p>
+
+          <div style="background-color: #eef6ff; padding: 15px; border-left: 4px solid #4488ff; margin: 20px 0;">
+            <p style="margin: 0;">
+              <strong>💡 Insight:</strong> "URL Seen?" is a perfect Bloom filter use case, just like the one we discussed in the <a href="designing-a-url-shortener.html">URL shortener post</a>. A hash set of billions of URLs is enormous; a Bloom filter answers "have I seen this?" in a couple of bits per URL. The catch is that it's <em>probabilistic</em> — it can say "seen" for a URL you've never touched, which means you silently skip a page. For a crawler that's a totally acceptable trade: you were never going to crawl 100% of the web anyway, and you save tens of gigabytes of RAM.
+            </p>
+          </div>
+
+          <h2>Step 3: Design deep dive</h2>
+
+          <p>
+            Now the interesting part. We'll go through:
+          </p>
+          <ul>
+            <li>DFS vs BFS</li>
+            <li>The URL frontier (politeness, priority, freshness)</li>
+            <li>The HTML downloader</li>
+            <li>Robustness &amp; extensibility</li>
+            <li>Detecting and avoiding problematic content</li>
+          </ul>
+
+          <h3>DFS vs BFS</h3>
+
+          <p>
+            Think of the web as a directed graph: pages are nodes, hyperlinks are edges. So crawling is graph traversal, and we have two classic options.
+          </p>
+
+          <p>
+            <strong>DFS is a bad choice.</strong> The depth can get very, very deep — you'll chase one chain of links down a hole and never come back up. There's no natural bottom to the web.
+          </p>
+
+          <p>
+            <strong>BFS is what crawlers actually use</strong>, implemented with a plain FIFO queue. But naive BFS has two problems.
+          </p>
+
+          <h4>Problem 1: BFS is rude</h4>
+          <p>
+            Most links on a page point back to the <em>same host</em>. So when you pop a batch of URLs off a FIFO queue and download them in parallel, you're hammering one poor server with hundreds of concurrent requests.
+          </p>
+
+          <img src="../images/designing-a-web-crawler/bfs_same_host.png" alt="Most links on a page point to the same host, so parallel BFS floods that host" />
+
+          <p>
+            That's considered "impolite" — and from the server's side, it's indistinguishable from a denial-of-service attack. You'll get IP-banned before you finish crawling one domain.
+          </p>
+
+          <h4>Problem 2: BFS treats every URL as equally important</h4>
+          <p>
+            A standard queue has no notion of priority. But the Apple home page and a random forum post about Apple products are not equally worth crawling, even though both mention "Apple". We want to rank URLs by page rank, traffic, update frequency, and so on.
+          </p>
+
+          <p>
+            Both problems have the same answer: stop using a plain queue. Use a frontier.
+          </p>
+
+          <h3>URL Frontier</h3>
+
+          <p>
+            The URL frontier is the component that ensures three things: <strong>politeness</strong>, <strong>priority</strong>, and <strong>freshness</strong>. Let's take them one at a time.
+          </p>
+
+          <h4>Politeness</h4>
+
+          <p>
+            The rule is simple: <strong>download one page at a time from the same host</strong>, with a delay between requests. Implementing that rule at scale is where the design gets clever.
+          </p>
+
+          <img src="../images/designing-a-web-crawler/politeness_back_queues.png" alt="Politeness enforced through per-host back queues and worker threads" />
+
+          <ul>
+            <li><strong>Queue router:</strong> ensures each queue (b1, b2, … bn) only contains URLs from a single host.</li>
+            <li><strong>Mapping table:</strong> maps each host to its queue.</li>
+          </ul>
+
+          <img src="../images/designing-a-web-crawler/mapping_table.png" alt="Mapping table from host to back queue" />
+
+          <ul>
+            <li><strong>Queue selector:</strong> each worker thread is bound to one FIFO queue and only pulls from that queue.</li>
+            <li><strong>Worker threads 1..N:</strong> each downloads pages one by one from its host, with a delay between downloads.</li>
+          </ul>
+
+          <p>
+            The key insight is that <em>a thread never shares a host with another thread</em>. Politeness stops being a coordination problem and becomes a partitioning problem — and partitioning problems are ones we know how to solve.
+          </p>
+
+          <div style="background-color: #eef6ff; padding: 15px; border-left: 4px solid #4488ff; margin: 20px 0;">
+            <p style="margin: 0;">
+              <strong>💡 Insight:</strong> Politeness is just <strong>rate limiting, keyed by host</strong> — the exact same problem I wrote about in <a href="rate-limiting-algorithms.html">Rate Limiting Algorithms</a>, only this time we're the ones being polite instead of the ones enforcing it. A per-host token bucket is a perfectly good alternative implementation. And in the real world, the polite delay isn't a fixed constant you pick — <code>robots.txt</code> can specify a <code>Crawl-delay</code>, and well-behaved crawlers respect it. Some also adapt dynamically: if a host's response time creeps up, back off.
+            </p>
+          </div>
+
+          <h4>Priority</h4>
+
+          <p>
+            A random forum post about Apple products carries very different weight from a post on the Apple home page. Both contain "Apple" — the crawler should still hit the home page first.
+          </p>
+
+          <img src="../images/designing-a-web-crawler/priority_front_queues.png" alt="Prioritizer feeding weighted front queues" />
+
+          <ul>
+            <li><strong>Prioritizer:</strong> takes URLs and computes a priority for each.</li>
+            <li><strong>Queues f1..fn:</strong> each queue has an assigned priority level.</li>
+            <li><strong>Queue selector:</strong> randomly picks a queue, biased toward higher-priority ones.</li>
+          </ul>
+
+          <p>
+            Note the word <strong>randomly</strong>. It's tempting to always drain the highest-priority queue first, but then low-priority URLs starve forever. Biased random selection means important pages get crawled sooner <em>on average</em>, while everything else still makes progress. Starvation avoidance, straight out of an OS scheduler.
+          </p>
+
+          <h4>Putting both together</h4>
+
+          <p>
+            Now stack them. Front queues handle prioritization, back queues handle politeness:
+          </p>
+
+          <img src="../images/designing-a-web-crawler/url_frontier_combined.png" alt="Complete URL frontier with front queues for priority and back queues for politeness" />
+
+          <p>
+            A URL enters at the top, gets scored by the prioritizer, lands in a priority queue, gets pulled out with a bias toward importance, then gets routed by host into exactly one back queue, where exactly one worker thread will politely download it. Priority decides <em>what</em> we crawl next; politeness decides <em>when</em> we're allowed to.
+          </p>
+
+          <h4>Freshness</h4>
+
+          <p>
+            Web pages are constantly added, deleted, and edited. A crawler has to periodically <strong>recrawl</strong> to keep the dataset fresh. But recrawling everything is enormously wasteful — most pages haven't changed since you last saw them.
+          </p>
+
+          <p>
+            Two strategies help:
+          </p>
+          <ul>
+            <li>Recrawl based on <strong>update history</strong> — a page that changed 5 times last week probably will again; one that hasn't moved in 3 years can wait.</li>
+            <li><strong>Prioritize important pages</strong> — recrawl them more often, and more frequently.</li>
+          </ul>
+
+          <div style="background-color: #fff8e6; padding: 15px; border-left: 4px solid #ffaa00; margin: 20px 0;">
+            <p style="margin: 0;">
+              <strong>⚡ Practical trick:</strong> before spending 500 KB of bandwidth on a recrawl, ask the server whether anything changed. An HTTP <code>HEAD</code> request, or a <code>GET</code> with <code>If-Modified-Since</code> / <code>If-None-Match</code>, gets you a <code>304 Not Modified</code> for a few hundred bytes. Sitemaps and RSS feeds are even better — many sites will just <em>tell</em> you what changed if you bother to ask.
+            </p>
+          </div>
+
+          <h4>Storage for the URL frontier</h4>
+
+          <p>
+            The frontier can hold hundreds of millions of URLs. Memory alone is neither durable nor big enough. Disk alone is durable but slow, and we need to enqueue/dequeue at hundreds of ops per second.
+          </p>
+
+          <p>
+            So: <strong>hybrid</strong>. The bulk of URLs live on disk so space isn't a concern, and we keep in-memory buffers for the enqueue/dequeue hot path, flushing to disk in batches. Same trick you'd use for any high-throughput queue — the disk is the source of truth, memory is the shock absorber.
+          </p>
+
+          <h3>HTML Downloader</h3>
+
+          <h4>robots.txt</h4>
+
+          <p>
+            The <strong>Robots Exclusion Protocol</strong> is how websites tell crawlers what they're allowed to touch. Before crawling a site, fetch its <code>robots.txt</code> and obey it. It looks like this:
+          </p>
+
+          <pre class="line-numbers"><code class="language-plaintext">User-agent: *
+Disallow: /creatorhub/*
+Disallow: /rss/people/*/reviews
+Disallow: /gp/pdp/profile/
+Crawl-delay: 10
+
+Sitemap: https://www.example.com/sitemap.xml</code></pre>
+
+          <p>
+            Downloading <code>robots.txt</code> before every single page would be absurd, so we <strong>cache</strong> it per host with a TTL and refresh periodically.
+          </p>
+
+          <pre class="line-numbers"><code class="language-javascript">// robots.txt is fetched once per host, then cached
+async function canCrawl(url) {
+  const host = new URL(url).host;
+
+  let rules = robotsCache.get(host);
+  if (!rules) {
+    rules = await fetchAndParseRobots(host);   // network hit, rare
+    robotsCache.set(host, rules, { ttl: 24 * 60 * 60 });
+  }
+
+  return rules.isAllowed(url, OUR_USER_AGENT);
+}</code></pre>
+
+          <p>
+            And to be clear: respecting <code>robots.txt</code> isn't just etiquette. It's the difference between being a crawler and being an attack.
+          </p>
+
+          <h4>Performance optimizations</h4>
+
+          <p><strong>1. Distributed crawl.</strong> Split the crawl across many servers, each running many threads. The URL space is partitioned so each downloader owns a subset of URLs.</p>
+
+          <img src="../images/designing-a-web-crawler/distributed_crawl.png" alt="Distributed crawl across multiple servers" />
+
+          <p><strong>2. Cache DNS results.</strong> DNS is a classic crawler bottleneck. Historically, many DNS interfaces were synchronous — one thread issues a lookup and everyone else waits behind it. Keeping our own DNS cache avoids most of those calls entirely.</p>
+
+          <p style="margin-top: -8px;">
+            Worth noting: this is one of the places where the textbook answer has aged. Modern resolvers and runtimes expose <strong>async DNS</strong>, so multiple threads can resolve concurrently without blocking each other. The cache is still absolutely worth having — you don't want a network round trip per URL when one host serves you a million pages — but "DNS blocks all threads" is no longer the reason.
+          </p>
+
+          <p><strong>3. Locality.</strong> Distribute crawl servers geographically. Servers physically closer to the hosts they crawl get faster downloads. This applies to everything, not just the downloaders — put your frontier, storage, and cache near the crawlers using them.</p>
+
+          <p><strong>4. Short timeouts.</strong> Some hosts are slow. Some are dead but still accepting connections. Set a maximum wait time; if a host doesn't respond in time, drop the job and go crawl something else. A crawler's worst enemy isn't failure, it's <em>hanging</em>.</p>
+
+          <h3>Robustness</h3>
+
+          <p>
+            At this scale, things break constantly. A few things that keep the system standing:
+          </p>
+
+          <ul>
+            <li>
+              <strong>Consistent hashing:</strong> for distributing load across downloader servers, so adding or removing a server doesn't reshuffle the entire URL space. I wrote a whole post on this — see <a href="consistent-hashing-explained.html">Consistent Hashing Explained</a>.
+            </li>
+            <li>
+              <strong>Save crawl states and data:</strong> checkpoint the frontier and progress to storage. A crashed distributed crawl can then be restarted by loading the saved state instead of starting from the seeds again.
+            </li>
+            <li>
+              <strong>Exception handling:</strong> the crawler must never crash on a bad response. Malformed HTML, redirect loops, invalid encodings, TLS errors, servers that lie about content length — handle them gracefully and move on.
+            </li>
+            <li>
+              <strong>Data validation:</strong> validate before storing, or you'll pollute 30 PB with garbage.
+            </li>
+          </ul>
+
+          <h3>Extensibility</h3>
+
+          <p>
+            Every system evolves, and a crawler evolves faster than most. Design it so new content types plug in as modules rather than requiring surgery on the core loop:
+          </p>
+
+          <img src="../images/designing-a-web-crawler/extensibility.png" alt="Extending the crawler with pluggable modules" />
+
+          <ul>
+            <li>A <strong>PNG Downloader</strong> module plugs in to download images.</li>
+            <li>A <strong>Web Monitor</strong> module plugs in to watch for copyright and trademark infringement.</li>
+          </ul>
+
+          <p>
+            Note that our original requirement said "HTML only" — and yet the design accommodates images without redesign. That's what a good abstraction boundary buys you.
+          </p>
+
+          <h3>Detect and avoid problematic content</h3>
+
+          <h4>1. Redundant content</h4>
+          <p>
+            As mentioned, ~30% of pages are duplicates. Hashes and checksums catch the exact ones cheaply.
+          </p>
+
+          <div style="background-color: #eef6ff; padding: 15px; border-left: 4px solid #4488ff; margin: 20px 0;">
+            <p style="margin: 0;">
+              <strong>💡 Insight:</strong> A plain hash (MD5, SHA-1) only catches <em>byte-identical</em> pages. But most real duplicates aren't identical — the same article on two sites differs by a timestamp, an ad slot, or a nav bar, and a one-character change flips the entire hash. That's what <strong>SimHash</strong> and <strong>MinHash</strong> are for: locality-sensitive hashes where <em>similar documents produce similar fingerprints</em>, so you can compare by Hamming distance instead of equality. Google published its SimHash near-duplicate work back in 2007 for exactly this reason. Mention this in an interview and you'll stand out.
+            </p>
+          </div>
+
+          <h4>2. Spider traps</h4>
+          <p>
+            A spider trap is a page that puts the crawler into an infinite loop. The classic is an infinitely deep directory structure:
+          </p>
+
+          <pre><code class="language-plaintext">http://www.spidertrapexample.com/foo/bar/foo/bar/foo/bar/…</code></pre>
+
+          <p>
+            You can dodge that specific one by capping URL length. But there's no one-size-fits-all solution — a calendar page with a "next month" link will happily generate URLs until the heat death of the universe, and it looks perfectly legitimate. The practical defense is detection by anomaly: sites with spider traps are easy to <em>spot</em>, because you'll discover an absurd number of pages on a single domain. Automatic avoidance is hard; manual blacklisting after detection is what most crawlers actually do.
+          </p>
+
+          <p>
+            A cheap extra guard: cap the crawl <strong>depth</strong> per host, and cap the total pages per domain. Neither is elegant. Both work.
+          </p>
+
+          <h4>3. Data noise</h4>
+          <p>
+            Some content has little or no value — advertisements, code snippets, spam URLs. It's not useful to index, and it costs you storage and crawl budget. Filter it out where you can.
+          </p>
+
+          <h2>A few more things worth knowing</h2>
+
+          <ul>
+            <li>
+              <strong>Server-side rendering:</strong> tons of sites generate their links at runtime with JavaScript and AJAX. If you download the raw HTML and parse it, you get an empty <code>&lt;div id="root"&gt;&lt;/div&gt;</code> and zero links. The fix is to render the page first — spin up a headless browser, let the JS run, <em>then</em> parse. This is also called dynamic rendering, and it is brutally expensive compared to a plain fetch, so crawlers usually render selectively rather than universally.
+            </li>
+            <li>
+              <strong>Filter out unwanted pages:</strong> storage and crawl capacity are finite. An anti-spam component that drops low-quality and spam pages before they enter the pipeline pays for itself immediately.
+            </li>
+            <li>
+              <strong>Database replication and sharding:</strong> the data layer needs both for availability, scalability, and reliability. If you want the details, that's basically the subject of <a href="designing-a-key-value-store.html">Designing a Key-Value Store</a>.
+            </li>
+          </ul>
+
+          <h2>Wrapping up</h2>
+
+          <p>
+            So — a web crawler is a BFS. And also it's a distributed rate limiter, a deduplication engine, a priority scheduler, a fault-tolerant queue, a cache hierarchy, and a slow-motion argument with every web server on the planet about how often you're allowed to say hello.
+          </p>
+
+          <p>
+            The things I'd want you to walk away with:
+          </p>
+
+          <ul>
+            <li><strong>The frontier is the design.</strong> Everything interesting — politeness, priority, freshness, durability — lives in that one component.</li>
+            <li><strong>Politeness is not optional.</strong> It's the difference between a crawler and a DoS attack, and it constrains your parallelism far more than your hardware does.</li>
+            <li><strong>Assume everything is broken and adversarial.</strong> Malformed HTML, spider traps, dead hosts, duplicate content. The happy path is the rare case.</li>
+            <li><strong>Separate the slow parts.</strong> Parsing, rendering, and storage all get their own components so they can't throttle the download loop.</li>
+            <li><strong>Approximation is fine.</strong> Bloom filters, sampled recrawls, SimHash — you're never going to crawl the whole web perfectly, so trade a little accuracy for a lot of scale.</li>
+          </ul>
+
+          <p>
+            Next time you look at a search result, remember there's a very patient robot out there that had to politely ask a server for that page, wait its turn, check it wasn't a duplicate of something it saw last Tuesday, and file it away in a 30-petabyte pile. Kind of beautiful, honestly.
+          </p>
+
+          <p>Happy crawling! 🕸️</p>
+          <br />
+          <p><strong>- Your fellow soul (harsh).</strong></p>
+        </div>
+      </article>
+    </main>
+
+    <!-- Prism.js JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="../js/main.js"></script>
+  </body>
+</html>

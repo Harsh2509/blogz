@@ -1,0 +1,190 @@
+{
+  "nodes": [
+    {
+      "id": "cap_consistency",
+      "label": "Consistency",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/cap.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "cap_availability",
+      "label": "Availability",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/cap.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "cap_partition_tolerance",
+      "label": "Partition Tolerance",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/cap.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "cap_ca",
+      "label": "CA (Consistency + Availability)",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/cap.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "cap_cp",
+      "label": "CP (Consistency + Partition Tolerance)",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/cap.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "cap_ap",
+      "label": "AP (Availability + Partition Tolerance)",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/cap.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "cap_cap_theorem",
+      "label": "CAP theorem (trade-off among Consistency, Availability, Partition Tolerance)",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/cap.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "cap_ca",
+      "target": "cap_consistency",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/cap.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "cap_ca",
+      "target": "cap_availability",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/cap.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "cap_cp",
+      "target": "cap_consistency",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/cap.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "cap_cp",
+      "target": "cap_partition_tolerance",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/cap.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "cap_ap",
+      "target": "cap_availability",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/cap.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "cap_ap",
+      "target": "cap_partition_tolerance",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/cap.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "cap_cap_theorem",
+      "target": "cap_consistency",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "images/design-a-key-value-store/cap.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "cap_cap_theorem",
+      "target": "cap_availability",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "images/design-a-key-value-store/cap.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "cap_cap_theorem",
+      "target": "cap_partition_tolerance",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "images/design-a-key-value-store/cap.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "cap_theorem_tradeoff",
+      "label": "CAP theorem trade-off triad",
+      "nodes": [
+        "cap_consistency",
+        "cap_availability",
+        "cap_partition_tolerance"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "images/design-a-key-value-store/cap.png"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

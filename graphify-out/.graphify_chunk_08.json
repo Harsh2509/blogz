@@ -1,0 +1,217 @@
+{
+  "nodes": [
+    {
+      "id": "merkle_tree_merkle_tree",
+      "label": "Merkle Tree",
+      "file_type": "rationale",
+      "source_file": "images/design-a-key-value-store/merkle_tree.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "merkle_tree_server1_merkle_tree",
+      "label": "Server 1 Merkle Tree",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/merkle_tree.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "merkle_tree_server2_merkle_tree",
+      "label": "Server 2 Merkle Tree",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/merkle_tree.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "merkle_tree_root_hash_5357",
+      "label": "Root Hash 5357",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/merkle_tree.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "merkle_tree_root_hash_9213",
+      "label": "Root Hash 9213",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/merkle_tree.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "merkle_tree_leaf_8_1356",
+      "label": "Leaf Entry 8 -> 1356",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/merkle_tree.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "merkle_tree_leaf_8_missing",
+      "label": "Missing Leaf Entry for Key 8",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/merkle_tree.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "merkle_tree_hash_mismatch_path",
+      "label": "Hash Mismatch Path (red hashes)",
+      "file_type": "rationale",
+      "source_file": "images/design-a-key-value-store/merkle_tree.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "merkle_tree_server1_merkle_tree",
+      "target": "merkle_tree_merkle_tree",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/merkle_tree.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "merkle_tree_server2_merkle_tree",
+      "target": "merkle_tree_merkle_tree",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/merkle_tree.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "merkle_tree_server1_merkle_tree",
+      "target": "merkle_tree_server2_merkle_tree",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/merkle_tree.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "merkle_tree_root_hash_5357",
+      "target": "merkle_tree_server1_merkle_tree",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/merkle_tree.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "merkle_tree_root_hash_9213",
+      "target": "merkle_tree_server2_merkle_tree",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/merkle_tree.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "merkle_tree_leaf_8_1356",
+      "target": "merkle_tree_server1_merkle_tree",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/merkle_tree.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "merkle_tree_leaf_8_missing",
+      "target": "merkle_tree_server2_merkle_tree",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/merkle_tree.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "merkle_tree_leaf_8_1356",
+      "target": "merkle_tree_leaf_8_missing",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "images/design-a-key-value-store/merkle_tree.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "merkle_tree_leaf_8_1356",
+      "target": "merkle_tree_hash_mismatch_path",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "images/design-a-key-value-store/merkle_tree.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "merkle_tree_leaf_8_missing",
+      "target": "merkle_tree_hash_mismatch_path",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "images/design-a-key-value-store/merkle_tree.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "merkle_tree_hash_mismatch_path",
+      "target": "merkle_tree_root_hash_5357",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "images/design-a-key-value-store/merkle_tree.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "merkle_tree_hash_mismatch_path",
+      "target": "merkle_tree_root_hash_9213",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "images/design-a-key-value-store/merkle_tree.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

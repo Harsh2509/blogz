@@ -1,0 +1,211 @@
+{
+  "nodes": [
+    {
+      "id": "conflict_resolution_sx",
+      "label": "Sx",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/conflict_resolution.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "conflict_resolution_sy",
+      "label": "Sy",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/conflict_resolution.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "conflict_resolution_sz",
+      "label": "Sz",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/conflict_resolution.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "conflict_resolution_d1",
+      "label": "D1 ({Sx,1})",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/conflict_resolution.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "conflict_resolution_d2",
+      "label": "D2 ({Sx,2})",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/conflict_resolution.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "conflict_resolution_d3",
+      "label": "D3 ({Sx,2},{Sy,1})",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/conflict_resolution.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "conflict_resolution_d4",
+      "label": "D4 ({Sx,2},{Sz,1})",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/conflict_resolution.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "conflict_resolution_d5",
+      "label": "D5 ({Sx,3},{Sy,1},{Sz,1})",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/conflict_resolution.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "conflict_resolution_sx",
+      "target": "conflict_resolution_d1",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/conflict_resolution.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "conflict_resolution_sx",
+      "target": "conflict_resolution_d2",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/conflict_resolution.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "conflict_resolution_sy",
+      "target": "conflict_resolution_d3",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/conflict_resolution.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "conflict_resolution_sz",
+      "target": "conflict_resolution_d4",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/conflict_resolution.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "conflict_resolution_sx",
+      "target": "conflict_resolution_d5",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/conflict_resolution.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "conflict_resolution_d1",
+      "target": "conflict_resolution_d2",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/conflict_resolution.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "conflict_resolution_d2",
+      "target": "conflict_resolution_d3",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/conflict_resolution.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "conflict_resolution_d2",
+      "target": "conflict_resolution_d4",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/conflict_resolution.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "conflict_resolution_d3",
+      "target": "conflict_resolution_d5",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/conflict_resolution.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "conflict_resolution_d4",
+      "target": "conflict_resolution_d5",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/conflict_resolution.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "reconciliation_merge",
+      "label": "Reconciliation merge",
+      "nodes": [
+        "conflict_resolution_d3",
+        "conflict_resolution_d4",
+        "conflict_resolution_d5"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/conflict_resolution.png"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

@@ -1,0 +1,178 @@
+{
+  "nodes": [
+    {
+      "id": "virtual_nodes_server_0",
+      "label": "server 0",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/virtual_nodes.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "virtual_nodes_server_1",
+      "label": "server 1",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/virtual_nodes.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "virtual_nodes_s0_0",
+      "label": "s0_0",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/virtual_nodes.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "virtual_nodes_s0_1",
+      "label": "s0_1",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/virtual_nodes.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "virtual_nodes_s0_2",
+      "label": "s0_2",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/virtual_nodes.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "virtual_nodes_s1_0",
+      "label": "s1_0",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/virtual_nodes.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "virtual_nodes_s1_1",
+      "label": "s1_1",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/virtual_nodes.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "virtual_nodes_s1_2",
+      "label": "s1_2",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/virtual_nodes.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "virtual_nodes_k0",
+      "label": "k0",
+      "file_type": "image",
+      "source_file": "images/design-a-key-value-store/virtual_nodes.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "virtual_nodes_server_0",
+      "target": "virtual_nodes_s0_0",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/virtual_nodes.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "virtual_nodes_server_0",
+      "target": "virtual_nodes_s0_1",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/virtual_nodes.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "virtual_nodes_server_0",
+      "target": "virtual_nodes_s0_2",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/virtual_nodes.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "virtual_nodes_server_1",
+      "target": "virtual_nodes_s1_0",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/virtual_nodes.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "virtual_nodes_server_1",
+      "target": "virtual_nodes_s1_1",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/virtual_nodes.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "virtual_nodes_server_1",
+      "target": "virtual_nodes_s1_2",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/virtual_nodes.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "virtual_nodes_k0",
+      "target": "virtual_nodes_s1_1",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "images/design-a-key-value-store/virtual_nodes.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}
