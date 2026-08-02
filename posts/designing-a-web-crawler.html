@@ -59,7 +59,7 @@
             A web crawler goes by many names — a robot, a spider, a bot. Whatever you call it, the job is the same: start from a handful of pages, follow every link you find, and keep going until you've seen the internet. Search engines use it to discover new and updated content. That content can be a web page, an image, a video, a PDF — anything with a URL.
           </p>
 
-          <img src="../images/designing-a-web-crawler/crawler_intro.png" alt="A web crawler starting from seed pages and following links" />
+          <img src="../images/designing-a-web-crawler/meme.png" alt="A web crawler starting from seed pages and following links" />
 
           <p>
             Here's the thing that makes this problem fun: the algorithm is a graph traversal you learned in your second semester. That's it. That's the whole idea. And yet building one that actually works at web scale is one of the hardest distributed systems problems out there — because the graph is infinite, adversarial, half-broken, and it fights back.
@@ -68,6 +68,8 @@
           <p>
             Let's build one. 🕷️
           </p>
+
+          <img src="../images/designing-a-web-crawler/crawler_intro.png" alt="A web crawler starting from seed pages and following links" />
 
           <h2>Step 1: Understand the problem</h2>
 
